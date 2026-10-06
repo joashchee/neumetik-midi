@@ -1,0 +1,22 @@
+[package]
+name = "neumetik-midi-capi"
+version = "0.1.0"
+edition = "2021"
+authors = ["ansiapps"]
+license = "MIT"
+description = "Neumetik MIDI's C API: libneumetik_midi (static and shared) and neumetik_midi.wasm, with include/neumetik_midi.h"
+publish = false
+
+[lib]
+name = "neumetik_midi"
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+midi = { package = "neumetik-midi", path = ".." }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

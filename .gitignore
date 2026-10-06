@@ -1,0 +1,13 @@
+target/
+Cargo.lock
+dist/
+# Made by scripts/build.sh:
+demo/songs/
+demo/stats.json
+demo/*.wasm
+demo/neumetik-midi.js
+demo/neumetik-midi-worklet.js
+bindings/js/*.wasm
+bindings/godot/godot-cpp/
+bindings/godot/project/addons/neumetik_midi/bin/
+*.wav

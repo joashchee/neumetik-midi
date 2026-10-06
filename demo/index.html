@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neumetik MIDI</title>
+<meta name="description" content="General MIDI and GS music for games with no SoundFont: a tiny, free (MIT), dependency-free synthesizer. Hear it, compare it, measure it.">
+<link rel="stylesheet" href="demo.css">
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Free and open source · MIT</p>
+    <h1>Neumetik MIDI</h1>
+    <p class="lede">MIDI music for games, with no SoundFont. Every instrument is synthesized as it plays, so
+      the whole General MIDI and GS synthesizer downloads in <strong data-stat="wasm_gzip">about 65 KB</strong>.
+      No dependencies, no audio API: it turns MIDI into samples and your engine plays them.</p>
+    <div class="tiles" id="tiles">
+      <div class="tile"><span class="big" data-stat="wasm_gzip">–</span><span>WebAssembly, gzipped</span></div>
+      <div class="tile"><span class="big" data-stat="cpu_typical">–</span><span>of one CPU core for a typical song</span></div>
+      <div class="tile"><span class="big" data-stat="memory">–</span><span>memory, allocated once</span></div>
+      <div class="tile"><span class="big">0</span><span>dependencies, 0 bytes of samples</span></div>
+    </div>
+    <nav class="toc">
+      <a href="#listen">Listen</a><a href="#live">Play it</a><a href="#compare">Compare</a>
+      <a href="#bench">Benchmarks</a><a href="#choose">Choosing</a><a href="#start">Get started</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section id="listen">
+  <h2>Listen</h2>
+  <p>Four songs written for this page, or any MIDI file of your own (drop it here). Everything you hear is made in
+    your browser as it plays, in an AudioWorklet.</p>
+  <div class="card player" id="drop">
+    <div class="row">
+      <label class="field">Song
+        <select id="song">
+          <option value="songs/overworld.mid">Overworld: a game loop in layers</option>
+          <option value="songs/dungeon.mid">Dungeon: strings, harp, a filter opening</option>
+          <option value="songs/fur-elise.mid">Für Elise (Beethoven): piano and pedal</option>
+          <option value="songs/gm-tour.mid">A tour: 25 instruments and 8 drum kits</option>
+        </select>
+      </label>
+      <label class="button-like">Open a MIDI file…<input type="file" id="file" accept=".mid,.midi,.rmi,audio/midi" hidden></label>
+    </div>
+    <div class="transport">
+      <button id="play" class="primary" disabled>Play</button>
+      <button id="stop" disabled>Stop</button>
+      <div class="timeline">
+        <div class="loop-region" id="loop-region"></div>
+        <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Position">
+      </div>
+      <span class="time" id="time">0:00 / 0:00</span>
+    </div>
+    <div class="row controls">
+      <label class="check"><input type="checkbox" id="loop" checked> Loop <span class="muted" id="loop-note"></span></label>
+      <label class="field inline">Volume <input type="range" id="volume" min="0" max="200" value="100"></label>
+      <label class="field inline">Speed <input type="range" id="speed" min="25" max="200" value="100"> <span id="speed-out">1.00×</span></label>
+      <button id="fade">Fade out</button>
+      <span class="muted">Voices <strong id="voices">0</strong> / 64</span>
+    </div>
+    <p class="hint">Channels: click one to mute it. A muted channel plays on unheard, so it comes back in time: music in layers, as adaptive game music does.</p>
+    <div class="channels" id="channels"></div>
+    <p class="error" id="player-error" hidden></p>
+  </div>
+</section>
+
+<section id="live">
+  <h2>Play it</h2>
+  <p>The same synthesizer, played live over the song or on its own: what a game does for stings and sound effects.
+    Use the keys below, your computer keyboard (A W S E D F T G Y H U J K), or a MIDI keyboard.</p>
+  <div class="card">
+    <div class="row">
+      <label class="field">Bank
+        <select id="bank">
+          <option value="0">0: General MIDI</option>
+          <option value="80">80: the eighties</option>
+          <option value="81">81: the nineties</option>
+          <option value="82">82: the 2000s on</option>
+          <option value="8">8: GS variations</option>
+        </select>
+      </label>
+      <label class="field">Program <input type="number" id="program" min="0" max="127" value="0"></label>
+      <span class="instrument" id="instrument">Acoustic Grand Piano</span>
+      <label class="field inline">Bend <input type="range" id="bend" min="-8192" max="8191" value="0"></label>
+      <span class="muted" id="midi-in"></span>
+    </div>
+    <div class="keyboard" id="keyboard" aria-label="Keyboard"></div>
+  </div>
+</section>
+
+<section id="compare">
+  <h2>Compare with a SoundFont</h2>
+  <p>Sampled instruments sound more like the real thing, and synthesized ones download in kilobytes. Hear the
+    difference: the same song through Neumetik MIDI (<strong>A</strong>) and through a SoundFont of your choice
+    (<strong>B</strong>, played by <a href="https://github.com/sinshu/rustysynth">rustysynth</a>, MIT). Both are
+    rendered here and matched in loudness; switching keeps your place.</p>
+  <div class="card">
+    <div class="row">
+      <label class="button-like">Choose a SoundFont (.sf2)…<input type="file" id="sf2" accept=".sf2" hidden></label>
+      <span class="muted" id="sf2-name">No SoundFont yet. Free General MIDI ones include GeneralUser GS and FluidR3_GM.</span>
+    </div>
+    <div class="row">
+      <label class="field">Song <select id="ab-song"></select></label>
+      <button id="ab-render" class="primary" disabled>Render both</button>
+      <div class="ab-switch" role="group" aria-label="Which to hear">
+        <button id="ab-a" disabled>A: Neumetik MIDI</button>
+        <button id="ab-b" disabled>B: SoundFont</button>
+        <button id="ab-stop" disabled>Stop</button>
+      </div>
+    </div>
+    <table class="data" id="ab-table">
+      <thead><tr><th></th><th>Download</th><th>Render time</th><th>Faster than real time</th></tr></thead>
+      <tbody>
+        <tr><th>A: Neumetik MIDI</th><td data-ab="a-size">–</td><td data-ab="a-time">–</td><td data-ab="a-x">–</td></tr>
+        <tr><th>B: SoundFont</th><td data-ab="b-size">–</td><td data-ab="b-time">–</td><td data-ab="b-x">–</td></tr>
+      </tbody>
+    </table>
+    <p class="hint">A's download is the synthesizer itself. B's is the SoundFont plus a player for it (here
+      rustysynth's <span data-stat="sf_wasm">–</span> of WebAssembly). Render speed depends on the song and the
+      SoundFont.</p>
+  </div>
+</section>
+
+<section id="bench">
+  <h2>Benchmarks</h2>
+  <p>Each song played through a <code>Player</code> at 48 kHz in 512-frame buffers, as a game would, then every one of
+    the 64 voices busy at once. "Faster than real time" is how many seconds of music one second of one CPU core makes.</p>
+  <div class="grid2">
+    <div class="card">
+      <h3>Native <span class="muted" id="native-where"></span></h3>
+      <table class="data" id="native-bench"><thead><tr><th>Song</th><th>× real time</th><th>% one core</th><th>Voices</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h3>In this browser <span class="muted">(WebAssembly)</span></h3>
+      <table class="data" id="web-bench"><thead><tr><th>Song</th><th>× real time</th><th>% one core</th><th>Voices</th></tr></thead><tbody></tbody></table>
+      <button id="run-bench">Run it here</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Sizes</h3>
+    <table class="data" id="sizes"><tbody></tbody></table>
+  </div>
+</section>
+
+<section id="choose">
+  <h2>Choosing a lightweight MIDI option</h2>
+  <p>Most game frameworks (LÖVE, Phaser, raylib, Godot, MonoGame, libGDX, Heaps) can't play a <code>.mid</code> file
+    out of the box. These are the usual ways to add it, and what each costs.</p>
+  <div class="scroll">
+  <table class="data compare">
+    <thead><tr><th>Option</th><th>Language</th><th>License</th><th>Sounds from</th><th>What you ship</th><th>Web</th><th>Best for</th></tr></thead>
+    <tbody>
+      <tr class="us"><th>Neumetik MIDI</th><td>Rust core; C API, WebAssembly, bindings</td><td>MIT</td><td>Synthesis (no samples)</td><td data-stat="ship">~65 KB (web), ~0.4 MB (native)</td><td>Yes</td><td>Small downloads, game jams, music that reacts</td></tr>
+      <tr><th>TinySoundFont</th><td>C, single header</td><td>MIT</td><td>SoundFont samples</td><td>Tiny code + a SoundFont</td><td>Via Emscripten</td><td>C/C++ games that can ship a SoundFont</td></tr>
+      <tr><th>MeltySynth / RustySynth</th><td>C# / Rust</td><td>MIT</td><td>SoundFont samples</td><td>Small code + a SoundFont</td><td>RustySynth via wasm</td><td>.NET or Rust games wanting sampled sound</td></tr>
+      <tr><th>FluidSynth</th><td>C</td><td>LGPL-2.1</td><td>SoundFont samples</td><td>A larger library + a SoundFont</td><td>Via ports</td><td>The fullest SoundFont support; desktop</td></tr>
+      <tr><th>libADLMIDI / libOPNMIDI</th><td>C/C++</td><td>LGPL/GPL (by emulator)</td><td>FM chip emulation, built-in banks</td><td>A library, no SoundFont</td><td>Via Emscripten</td><td>That DOS/Genesis FM sound, on purpose</td></tr>
+      <tr><th>SpessaSynth</th><td>JS/TS</td><td>Apache-2.0</td><td>SoundFont / DLS samples</td><td>The library + a SoundFont</td><td>Yes</td><td>Web apps that can download a SoundFont</td></tr>
+      <tr><th>The OS's own synth</th><td>Platform APIs</td><td>Built in</td><td>The OS's sample set</td><td>Nothing</td><td>No</td><td>Desktop only; sounds differ per platform</td></tr>
+      <tr><th>Pre-rendered OGG/MP3</th><td>Any</td><td>–</td><td>A recording</td><td>About 1 MB a minute</td><td>Yes</td><td>Fixed music with no MIDI control</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="hint">A General MIDI SoundFont is typically 6 to 150 MB (GeneralUser GS is about 30 MB, FluidR3_GM about
+    140 MB). The third-party details above are a summary: confirm licenses and sizes with each project before you ship.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Pick Neumetik MIDI when</h3>
+      <ul>
+        <li>download size matters: a web game, a game jam, mobile;</li>
+        <li>the music should react: loops, layers muted and unmuted, tempo, fades, notes played over it;</li>
+        <li>you want one synth on every platform that sounds the same everywhere (its output is deterministic);</li>
+        <li>your license must be permissive (MIT) with no SoundFont license to check.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Pick a SoundFont synth when</h3>
+      <ul>
+        <li>realism matters most: orchestral scores, a solo acoustic instrument;</li>
+        <li>the music was written for one particular sound set and must sound like it;</li>
+        <li>a few megabytes more doesn't matter to your players.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Against the "lightweight" checklist</h3>
+    <table class="data checklist">
+      <thead><tr><th>Criterion</th><th>Neumetik MIDI</th></tr></thead>
+      <tbody>
+        <tr><th>Binary under 500 KB (ideally 100 KB)</th><td><span class="ok">Yes</span> <span data-stat="size_line">–</span></td></tr>
+        <tr><th>About 1% of a core; 2–4 MB of memory; no allocation while rendering</th><td><span class="ok">Yes</span> <span data-stat="cpu_line">–</span></td></tr>
+        <tr><th>No dependencies; MIDI in, PCM out</th><td><span class="ok">Yes</span> No dependencies, no audio API: float or 16-bit PCM, interleaved or not.</td></tr>
+        <tr><th>C API for every language</th><td><span class="partly">Mostly</span> A plain C header and a static or shared library. The core is Rust, not one C file, so it's a library you link rather than a header you drop in.</td></tr>
+        <tr><th>Real-time control, deterministic</th><td><span class="ok">Yes</span> Notes, controllers, pitch bend, raw MIDI, over the song or alone; the same MIDI always makes the same samples.</td></tr>
+        <tr><th>Permissive license</th><td><span class="ok">Yes</span> MIT.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>What it plays</h3>
+    <ul class="columns">
+      <li>Standard MIDI Files, formats 0, 1 and 2, and RIFF RMID</li>
+      <li>General MIDI's 128 instruments and its drum map (keys 27 to 87)</li>
+      <li>Roland GS: variation tones, drum kits, rhythm parts on any channel, GS reset</li>
+      <li>Classic synth banks 80, 81 and 82; XG's drum bank (127)</li>
+      <li>Volume, expression, pan, sustain, modulation, brightness, resonance, reverb, chorus</li>
+      <li>Pitch bend and its range, fine and coarse tuning (RPNs)</li>
+      <li>Loop points: <code>loopStart</code>/<code>loopEnd</code> markers, or CC 111</li>
+      <li>64 voices; the quietest is stolen when they run out</li>
+    </ul>
+    <p class="hint">Not supported: SoundFonts and DLS, GM2 and XG voice banks, NRPN sound editing, MIDI 2.0.</p>
+  </div>
+</section>
+
+<section id="start">
+  <h2>Get started</h2>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div id="tab-panels">
+<pre data-tab="Rust"><code>// Cargo.toml: neumetik-midi = "0.1"
+use neumetik_midi::Player;
+
+let mut music = Player::new(48_000);
+music.load(&amp;std::fs::read("overworld.mid")?)?;
+music.set_looping(true);       // between its loopStart/loopEnd markers
+music.play();
+
+// In your audio callback:
+music.render_interleaved(&amp;mut buffer);   // &amp;mut [f32], or render_i16
+
+// Whenever the game wants:
+music.fade_to(0.0, 1.5);
+music.set_channel_muted(9, true);      // drop the drums
+music.synth_mut().note_on(15, 72, 110); // a sting over the music</code></pre>
+<pre data-tab="C / C++"><code>#include "neumetik_midi.h"   // link libneumetik_midi.a (or the .so/.dylib/.dll)
+
+nm_player *music = nm_create(48000);
+if (nm_load(music, midi, midi_size) != NM_OK) { /* nm_error_string(code) */ }
+nm_set_looping(music, 1);
+nm_play(music);
+
+/* when the stream wants more */
+nm_render_f32(music, buffer, frames);    /* or nm_render_s16 */
+
+nm_fade_to(music, 0.0f, 1.5f);
+nm_destroy(music);</code></pre>
+<pre data-tab="Phaser / Web"><code>import { createMusicNode } from './neumetik-midi.js';
+
+// In a Phaser scene (Web Audio sound manager):
+const ctx = this.sound.context;
+const music = await createMusicNode(ctx);
+music.node.connect(this.sound.masterVolumeNode);
+
+await music.load(await (await fetch('overworld.mid')).arrayBuffer());
+music.setLooping(true);
+music.play();
+
+music.fadeTo(0, 1.5);
+music.onstatus = (s) => console.log(s.position, s.voices);</code></pre>
+<pre data-tab="LÖVE"><code>local NM = require("neumetik_midi")   -- plus the library beside main.lua
+
+function love.load()
+  music = NM.new()                                -- a QueueableSource inside
+  assert(music:load(love.filesystem.read("overworld.mid")))
+  music:setLooping(true)
+  music:play()
+end
+
+function love.update(dt)
+  music:update()                                  -- keeps it fed
+end</code></pre>
+<pre data-tab="MonoGame / C#"><code>var player = new NeumetikMidi.Player(44100);
+player.Load(File.ReadAllBytes("overworld.mid"));
+player.Looping = true;
+player.Play();
+
+var output = new DynamicSoundEffectInstance(44100, AudioChannels.Stereo);
+var buffer = new byte[1024 * 4];
+output.BufferNeeded += (_, _) =&gt; { player.Render(buffer); output.SubmitBuffer(buffer); };
+output.Play();</code></pre>
+<pre data-tab="Godot"><code># With the GDExtension: a NeumetikMusic node named Music.
+@onready var music: NeumetikMusic = $Music
+
+func _ready():
+    music.load_file("res://music/overworld.mid")
+    music.looping = true
+    music.play()
+
+func _on_boss_appears():
+    music.fade_to(0.0, 1.0)</code></pre>
+<pre data-tab="raylib"><code>AudioStream stream = LoadAudioStream(44100, 16, 2);
+nm_player *music = nm_create(44100);
+nm_load(music, data, size);
+nm_set_looping(music, 1);
+nm_play(music);
+PlayAudioStream(stream);
+
+while (!WindowShouldClose()) {
+    while (IsAudioStreamProcessed(stream)) {
+        nm_render_s16(music, buffer, 1024);
+        UpdateAudioStream(stream, buffer, 1024);
+    }
+    /* ... */
+}</code></pre>
+  </div>
+  <p>The README has the full API, every binding, building from source, threads and audio callbacks, loop points, and
+    making MIDI files that loop well.</p>
+</section>
+
+</main>
+
+<footer class="wrap">
+  <p>Neumetik MIDI <span id="version"></span> · MIT licensed · © 2026 ansiapps. The demo songs were written for this page and are free to use, as the
+    code is. "Für Elise" is Beethoven's, in the public domain.</p>
+</footer>
+
+<script type="module" src="demo.js"></script>
+</body>
+</html>

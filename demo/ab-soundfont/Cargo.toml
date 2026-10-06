@@ -1,0 +1,21 @@
+# The demo page's comparison: the same MIDI through a SoundFont, with
+# rustysynth (MIT), built to WebAssembly. Not part of Neumetik MIDI.
+[package]
+name = "neumetik-midi-demo-soundfont"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+rustysynth = "1.3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
